@@ -52,7 +52,7 @@ export default function MeishiPage({ meishi, uId }) {
       <div className="relative bg-[url('/images/igo.webp')] bg-cover bg-center bg-no-repeat min-h-screen flex justify-center">
       <div className="absolute inset-0 bg-white/60 backdrop-blur-none z-0"></div>
       <div className="absolute top-4 right-4 text-sm text-gray-700">
-      <a href="http://localhost:3000">トップページへ</a>
+      <a href="https://igo-meishi.vercel.app/">トップページへ</a>
       </div>
 
       <div className="relative z-10 w-full max-w-xl mx-auto border p-6 rounded-lg shadow-lg mt-10 bg-white text-center">
