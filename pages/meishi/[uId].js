@@ -47,7 +47,7 @@ export default function MeishiPage({ meishi, uId }) {
   return (
     <>
       <Head>
-        <title>{meishi.name}'s 囲碁名刺</title>
+        <title>{meishi.name}の 囲碁名刺</title>
       </Head>
       <div className="relative bg-[url('/images/igo.webp')] bg-cover bg-center bg-no-repeat min-h-screen flex justify-center">
       <div className="absolute inset-0 bg-white/60 backdrop-blur-none z-0"></div>
