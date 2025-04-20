@@ -1,4 +1,4 @@
-import { useState,useEffect } from 'react';
+import { useState } from 'react';
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from 'next/router';
 import { doc, collection, query, where, getDoc,getDocs , updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -18,47 +18,25 @@ const ranks = [
 const rankOptions = [];
 
 platforms.forEach(platform => {
-  if (platform === 'その他(自由入力)') return; // 除外
+  if (platform === 'その他(自由入力)') return;
   ranks.forEach(rank => {
     rankOptions.push(`${platform}${rank}`);
   });
 });
 
-rankOptions.push('その他(自由入力)'); // 自由入力用
+rankOptions.push('その他(自由入力)'); 
 
-export default function EditPage({ meishi, uId }) {
+export default function EditPage({ meishi, uid }) {
   const router = useRouter();
-  const [user, loading] = useAuthState(auth);
+  const [user] = useAuthState(auth);
   const [name, setName] = useState(meishi.name || '');
   const [youtubeurl, setYURL] = useState(meishi.youtubeurl || '');
   const [twitterurl, setTURL] = useState(meishi.twitterurl || '');
   const [instagramurl, setIURL] = useState(meishi.instagramurl || '');
-  const [ranksList, setRanksList] = useState([]);
-
-  // useEffect(() => {
-  //   if (meishi.rank && meishi.rank.length > 0) {
-  //     const parsed = meishi.rank.map(r => {
-  //       const match = r.match(/^(.+?)([\d,]+[段級])$/);
-  //       if (match) {
-  //         return { platform: match[1], rank: match[2], customPlatform: '', customRank: '' };
-  //       } else {
-  //         // 自由入力扱い
-  //         return {
-  //           platform: 'その他(自由入力)',
-  //           rank: 'その他(自由入力)',
-  //           customPlatform: r.includes('段') || r.includes('級') ? r.replace(/[段級].*$/, '') : r,
-  //           customRank: r.match(/\d+[段級]/) ? r.match(/\d+[段級]/)[0] : ''
-  //         };
-  //       }
-  //     });
-  //     console.log('Parsed ranks:', parsed);
-  //     setRanksList(parsed);
-  //   }
-  // }, [meishi.rank]);
-
+  const [ranksList, setRanksList] = useState(meishi.rank || '');
   const [style, setStyle] = useState(meishi.style || '');
-  const [experienceYear, setexperienceYear] = useState(meishi.experience?.match(/(\d+)年/)?.[1] || '');
-  const [experienceMonth, setExperienceMonth] = useState(meishi.experience?.match(/(\d+)ヶ月/)?.[1] || '');
+  const [experienceYear, setexperienceYear] = useState(meishi.experienceYear || '');
+  const [experienceMonth, setExperienceMonth] = useState(meishi.experienceMonth || '');
   const [favoritePlayer, setFavoritePlayer] = useState(meishi.favoritePlayer || '');
   const [message, setMessage] = useState(meishi.message || '');
   const [iconFile, setIconFile] = useState(null);
@@ -88,8 +66,27 @@ export default function EditPage({ meishi, uId }) {
   const validateForm = async() => {
     const errors = {};
     if (!name.trim()) errors.name = '氏名orハンドルネームは必須です';
-    if (experienceYear && !/^\d+$/.test(experienceYear)) errors.experience = '年数は整数で入力して下さい';
-    if (experienceMonth && !/^\d+$/.test(experienceMonth)) errors.experience = '月数は整数で入力して下さい';
+
+    const youtubeUrlPattern = /^https:\/\/youtube\.com\//;
+    const trimmedyoutubeUrl = youtubeurl.trim();
+    if (trimmedyoutubeUrl && !trimmedyoutubeUrl.match(youtubeUrlPattern)) {
+      errors.youtubeurl = "https://youtube.com/ を含めたURLを入力してください";
+    }
+
+    const twitterUrlPattern = /^https:\/\/x\.com\//;
+    const trimmedtwitterUrl = twitterurl.trim();
+    if (trimmedtwitterUrl && !trimmedtwitterUrl.match(twitterUrlPattern)) {
+      errors.twitterurl = "https://x.com/ を含めたURLを入力してください";
+    }
+
+    const instagramUrlPattern = /^https:\/\/instagram\.com\//;
+    const trimmedinstagramUrl = instagramurl.trim();
+    if (trimmedinstagramUrl && !trimmedinstagramUrl.match(instagramUrlPattern)) {
+      errors.instagramurl = "https://instagram.com/ を含めたURLを入力してください";
+    }
+
+    if (experienceYear && !/^\d+$/.test(experienceYear)) errors.experienceYear = '年数は整数で入力して下さい';
+    if (experienceMonth && !/^\d+$/.test(experienceMonth)) errors.experienceMonth = '月数は整数で入力して下さい';
 
     const nameQuery = query(
       collection(db, 'igo_meishi'),
@@ -98,45 +95,27 @@ export default function EditPage({ meishi, uId }) {
     const nameQuerySnapshot = await getDocs(nameQuery);
 
     if (!nameQuerySnapshot.empty) {
-      const isOwnDoc = nameQuerySnapshot.docs.some(doc => doc.data().uid === user.uid);
+      const isOwnDoc = nameQuerySnapshot.docs.some(doc => doc.id === user.uid);
 
       if (!isOwnDoc) {
         errors.name = 'この氏名またはユーザー名は既に登録されています。変更してください。';
       } 
     }
-
     return errors;
   };
 
-  // // useEffectなどでFirestoreから取得したデータを使う場合は以下のように整形
-  // const normalizeRanksList = (originalList) => {
-  //   return originalList.map((item) => {
-  //     return {
-  //       platform: item.customPlatform ? 'その他(自由入力)' : item.platform || '',
-  //       customPlatform: item.customPlatform || '',
-  //       rank: item.customRank ? 'その他(自由入力)' : item.rank || '',
-  //       customRank: item.customRank || ''
-  //     };
-  //   });
-  // };
-
-  // // 初期化時などで呼び出す（例）
-  // useEffect(() => {
-  //   if (meishi && meishi.rankList) {
-  //     setRanksList(normalizeRanksList(meishi.rankList));
-  //   }
-  // }, [meishi]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setValidationErrors({});
     const errors = await validateForm();
+    console.log("errors;",errors);
     if (Object.keys(errors).length > 0) {
+      console.log("errors:",errors);
       setValidationErrors(errors);
       return;
     }
     setIsSubmitting(true);
     setError('');
-    setValidationErrors({});
 
     try {
       let iconUrl = meishi.iconUrl;
@@ -146,38 +125,23 @@ export default function EditPage({ meishi, uId }) {
         iconUrl = await getDownloadURL(storageRef);
       }
 
-      let experience = '';
-      if (experienceYear && experienceMonth) experience = `${experienceYear}年${experienceMonth}ヶ月`;
-      else if (experienceYear) experience = `${experienceYear}年`;
-      else if (experienceMonth) experience = `${experienceMonth}ヶ月`;
-
-      
-      const finalRanks = ranksList.map(r => {
-        const platform = r.platform === 'その他(自由入力)' ? r.customPlatform : r.platform;
-        const rank = r.rank === 'その他(自由入力)' ? r.customRank : r.rank;
-        return platform && rank ? `${platform}${rank}` : null;
-      }).filter(Boolean);
-
-      // const cleanedRankList = ranksList.map((item) => ({
-      //   platform: item.platform === 'その他(自由入力)' ? 'その他(自由入力)' : item.platform,
-      //   customPlatform: item.platform === 'その他(自由入力)' ? item.customPlatform : '',
-      //   rank: item.rank === 'その他(自由入力)' ? 'その他(自由入力)' : item.rank,
-      //   customRank: item.rank === 'その他(自由入力)' ? item.customRank : ''
-      // }));
-
-      await updateDoc(doc(db, 'igo_meishi', uId), {
+      await updateDoc(doc(db, 'igo_meishi', user.uid), {
         name,
+        youtubeurl,
+        twitterurl,
+        instagramurl,
         normalizedName: normalizeName(name),
-        rank: finalRanks,
+        rank: ranksList,
         style,
-        experience,
+        experienceYear,
+        experienceMonth,
         favoritePlayer,
         message,
         iconUrl,
         lastUpdated: serverTimestamp(),
       });
 
-      router.push(`/meishi/${uId}`);
+      router.push(`/meishi/${encodeURIComponent(name)}`);
     } catch (err) {
       console.error('更新エラー:', err);
       setError('更新中にエラーが発生しました。');
@@ -201,6 +165,9 @@ export default function EditPage({ meishi, uId }) {
             }
             className="w-full border p-2 rounded-lg" required />
           </label>
+          <div className="mt-2 text-sm text-gray-500">
+            {name.length} / 20 字
+          </div>
           {validationErrors.name && <p className="text-red-500">{validationErrors.name}</p>}
         </div>
 
@@ -216,6 +183,7 @@ export default function EditPage({ meishi, uId }) {
             className="w-full border p-2 rounded-lg"
           />
           </label>
+          {validationErrors.youtubeurl && <p className="text-red-500">{validationErrors.youtubeurl}</p>}
         </div>
 
         <div>
@@ -223,13 +191,14 @@ export default function EditPage({ meishi, uId }) {
             X(Twitter) URL
           <input
             type="text"
-            maxLength={50}
+            maxLength={100}
             placeholder="https://x.com/yourid"
             value={twitterurl}
             onChange={(e) => setTURL(e.target.value)}
             className="w-full border p-2 rounded-lg"
           />
           </label>
+          {validationErrors.twitterurl && <p className="text-red-500">{validationErrors.twitterurl}</p>}
         </div>
 
         <div>
@@ -244,6 +213,7 @@ export default function EditPage({ meishi, uId }) {
             className="w-full border p-2 rounded-lg"
           />
           </label>
+          {validationErrors.instagramurl && <p className="text-red-500">{validationErrors.instagramurl}</p>}
         </div>
 
         <div>
@@ -314,6 +284,9 @@ export default function EditPage({ meishi, uId }) {
             className="w-full border p-2 rounded-lg"
           />
           </label>
+          <div className="mt-2 text-sm text-gray-500">
+            {style.length} / 50 字
+          </div>
         </div>
 
         <div>
@@ -339,7 +312,8 @@ export default function EditPage({ meishi, uId }) {
             />
             <span>ヶ月</span>
           </div>
-          {validationErrors.experience && <p className="text-red-500">{validationErrors.experience}</p>}
+          {validationErrors.experienceYear && <p className="text-red-500">{validationErrors.experienceYear}</p>}
+          {validationErrors.experienceMonth && <p className="text-red-500">{validationErrors.experienceMonth}</p>}
         </div>
 
         <div>
@@ -353,11 +327,14 @@ export default function EditPage({ meishi, uId }) {
             className="w-full border p-2 rounded-lg"
           />
           </label>
+          <div className="mt-2 text-sm text-gray-500">
+            {favoritePlayer.length} / 100 字
+          </div>
         </div>
 
         <div>
           <label className="block font-bold">
-            ひとこと（100字以内）
+            ひとこと・宣伝など（100字以内）
           <input
             type="text"
             maxLength={100}
@@ -365,12 +342,15 @@ export default function EditPage({ meishi, uId }) {
             onChange={(e) => setMessage(e.target.value)}
             className="w-full border p-2 rounded-lg"
           />
+          <div className="mt-2 text-sm text-gray-500">
+            {message.length} / 100 字
+          </div>
           </label>
         </div>
 
         <div>
           <label className="block font-bold">
-            アイコン画像（再設定可能）（5MB以下）
+            アイコン画像（再設定可能）（jpgまたはpng、5MB以下）
           <input
             type="file"
             accept="image/png, image/jpeg"
@@ -395,13 +375,16 @@ export default function EditPage({ meishi, uId }) {
 
         {error && <p className="text-red-500">{error}</p>}
 
-        <button
+          <button
           type="submit"
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full"
+          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded block mx-auto"
           disabled={isSubmitting}
-        >
+          >
           {isSubmitting ? '保存中...' : '保存する'}
-        </button>
+          </button>
+          {Object.keys(validationErrors).length > 0 && (
+            <p className="text-sm text-red-500 text-center">修正が必要です</p>
+          )}
       </form>
     </div>
     </div>
@@ -409,13 +392,17 @@ export default function EditPage({ meishi, uId }) {
 }
 
 export async function getServerSideProps({ params }) {
-  const docRef = doc(db, 'igo_meishi', params.uId);
-  const docSnap = await getDoc(docRef);
+  const nameQuery = query(
+    collection(db, 'igo_meishi'),
+    where('normalizedName', '==', params.normalizedName)
+  );
+  const querySnap = await getDocs(nameQuery);
 
-  if (!docSnap.exists()) {
+  if (querySnap.empty) {
     return { notFound: true };
   }
 
+  const docSnap = querySnap.docs[0];
   const data = docSnap.data();
 
   return {
@@ -425,7 +412,7 @@ export async function getServerSideProps({ params }) {
         createdAt: data.createdAt?.toDate().toISOString() || null,
         lastUpdated: data.lastUpdated?.toDate().toISOString() || null,
       },
-      uId: params.uId,
+      normalizedName: params.normalizedName,
     },
   };
 }

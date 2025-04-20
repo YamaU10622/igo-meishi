@@ -3,24 +3,17 @@ import { useRef } from 'react';
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter } from 'next/router';
 import { db, auth } from "../../lib/firebase";
-import { doc, getDoc } from 'firebase/firestore';
+import { query, where, getDocs, collection } from 'firebase/firestore';
 import Head from 'next/head';
 import { QRCodeCanvas } from 'qrcode.react';
+import Footer from '@/components/Footer';
 
-export default function MeishiPage({ meishi, uId }) {
+export default function MeishiPage({ meishi, normalizedName }) {
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
   const qrRef = useRef(null);
 
   if (loading) return null;
-
-  const handleEditClick = () => {
-    if (user) {
-      router.push(`/edit/${user.uid}`);
-    } else {
-      router.push(`/login?redirect=/edit`);
-    }
-  }
 
   const handleDownload = () => {
     const canvas = qrRef.current?.querySelector('canvas');
@@ -44,13 +37,19 @@ export default function MeishiPage({ meishi, uId }) {
   window.open(tweetUrl, '_blank');
   };
 
+  const DisplayedRanks = meishi.rank.map(r => {
+  const platform = r.platform === 'その他(自由入力)' ? r.customPlatform : r.platform;
+  const rank = r.rank === 'その他(自由入力)' ? r.customRank : r.rank;
+  return `${platform || ''}${rank || ''}`;
+  }).filter(r => r); // 空文字は除外
+
   return (
     <>
       <Head>
         <title>{meishi.name}の 囲碁名刺</title>
       </Head>
-      <div className="relative bg-[url('/images/igo.webp')] bg-cover bg-center bg-no-repeat min-h-screen flex justify-center">
-      <div className="absolute inset-0 bg-white/60 backdrop-blur-none z-0"></div>
+      <div className="relative bg-[url('/images/igo.webp')] bg-cover bg-center bg-no-repeat min-h-screen flex flex-col">
+      <div className="absolute inset-0 z-0 bg-white/60 backdrop-blur-none z-0"></div>
       <div className="absolute top-4 right-4 text-sm text-gray-700">
       <a href="https://igo-meishi.vercel.app/">トップページへ</a>
       </div>
@@ -70,12 +69,12 @@ export default function MeishiPage({ meishi, uId }) {
       </h1>
       </div>
 
-    {/* 名刺情報 */}
-      <div className="text-gray-600 font-semibold mb-1">Link</div>
+      {/* 名刺情報 */}
+      {(meishi.youtubeurl||meishi.twitterurl||meishi.instagramurl)&&(<div className="text-gray-600 font-semibold mb-1">Link</div>)}
 
       {meishi.youtubeurl && (
         <div className="text-red-600 font-semibold mb-1">
-        <a href={meishi.youtubeurl} target="_blank" rel="noopener noreferrer" className="underline hover:text-red-800">
+        <a href={meishi.youtubeurl} target="_blank" rel="noopener noreferrer" className="hover:text-red-800">
         YouTube
         </a>
         </div>
@@ -83,7 +82,7 @@ export default function MeishiPage({ meishi, uId }) {
 
       {meishi.twitterurl && (
         <div className="text-blue-600 font-semibold mb-1">
-        <a href={meishi.twitterurl} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">
+        <a href={meishi.twitterurl} target="_blank" rel="noopener noreferrer" className="hover:text-blue-800">
         X(Twitter)
         </a>
         </div>
@@ -91,7 +90,7 @@ export default function MeishiPage({ meishi, uId }) {
 
       {meishi.instagramurl && (
         <div className="text-purple-600 font-semibold mb-1">
-        <a href={meishi.instagramurl} target="_blank" rel="noopener noreferrer" className="underline hover:text-purple-800">
+        <a href={meishi.instagramurl} target="_blank" rel="noopener noreferrer" className="hover:text-purple-800">
         Instagram
         </a>
         </div>
@@ -100,7 +99,7 @@ export default function MeishiPage({ meishi, uId }) {
     <div className="space-y-4 text-base text-gray-800">
       <div>
         <div className="text-gray-600 font-semibold mb-1">棋力</div>
-        <div>{(Array.isArray(meishi.rank) ? meishi.rank : [meishi.rank]).join('、') || '―'}</div>
+        <div>{(Array.isArray(DisplayedRanks) ? DisplayedRanks : [DisplayedRanks]).join('、') || '―'}</div>
       </div>
 
       <div>
@@ -110,7 +109,7 @@ export default function MeishiPage({ meishi, uId }) {
 
       <div>
         <div className="text-gray-600 font-semibold mb-1">囲碁歴</div>
-        <div>{meishi.experience || '―'}</div>
+        {meishi.experienceYear && (<span>{meishi.experienceYear}年</span>)} {meishi.experienceMonth && (<span>{meishi.experienceMonth}ヶ月</span>)}
       </div>
 
       <div>
@@ -119,7 +118,7 @@ export default function MeishiPage({ meishi, uId }) {
       </div>
 
       <div>
-        <div className="text-gray-600 font-semibold mb-1">ひとこと</div>
+        <div className="text-gray-600 font-semibold mb-1">ひとこと・宣伝など</div>
         <div>{meishi.message || '―'}</div>
       </div>
     </div>
@@ -158,22 +157,24 @@ export default function MeishiPage({ meishi, uId }) {
   </button>
   </div>
 
+    <Footer />
     </div>
-    </div>
+    
+      </div>
     </>
   );
 }
 
 export async function getServerSideProps({ params }) {
-  // const [user] = useAuthState(auth);
-  const docRef = doc(db, 'igo_meishi', params.uId);
-  const docSnap = await getDoc(docRef);
-
-  if (!docSnap.exists()) {
-    return { notFound: true };
-  }
-
-  const data = docSnap.data();
+    const nameQuery = query(collection(db, 'igo_meishi'),
+      where('normalizedName', '==', params.normalizedName)
+    );
+    const querySnap = await getDocs(nameQuery);
+    const docSnap = querySnap.docs[0];
+    if (!docSnap.exists()) {
+      return { notFound: true };
+    }
+    const data = docSnap.data();
 
   return {
     props: {
@@ -182,8 +183,7 @@ export async function getServerSideProps({ params }) {
         createdAt: data.createdAt?.toDate().toISOString() || null,
         lastUpdated: data.lastUpdated?.toDate().toISOString() || null,
       },
-      // docId: params.docId,
-      uId: params.uId,
+      normalizedName: params.normalizedName,
     },
   };
 }
