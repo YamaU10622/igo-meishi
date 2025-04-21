@@ -5,8 +5,8 @@ import { doc, collection, query, where, getDoc,getDocs , updateDoc, serverTimest
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../../lib/firebase';
 
-const platforms = ['幽玄の間', '野狐囲碁', '東洋囲碁', 'OGS','KGS', 'みんなの囲碁', 'その他(自由入力)'
-
+const platforms = [
+  '幽玄の間 ', '野狐囲碁 ', '東洋囲碁 ', 'OGS ', 'KGS ', '囲碁クエスト(9路) ', '囲碁クエスト(13路) ', '囲碁クエスト(19路) ', 'みんなの囲碁 ', 'その他(自由入力)'
 ];
 const ranks = [
   '9段', '8段', '7段', '6段', '5段', '4段', '3段', '2段', '初段',
@@ -51,7 +51,7 @@ export default function EditPage({ meishi, uid }) {
   };
   
   const addRankField = () => {
-    if (ranksList.length >= 3) return;
+    if (ranksList.length >= 4) return;
     setRanksList([...ranksList, { platform: '', customPlatform: '', rank: '', customRank: '' }]);
   };
 
@@ -217,7 +217,7 @@ export default function EditPage({ meishi, uid }) {
         </div>
 
         <div>
-          <label className="block font-bold">棋力（最大3件）</label>
+          <label className="block font-bold">棋力（4つまで）</label>
           ※選択肢にない場合は「その他(自由入力)」を選択して入力してください（30字以内）
           {ranksList.map((rank, index) => (
           <div key={index} className="mb-2 space-x-2">
@@ -233,7 +233,7 @@ export default function EditPage({ meishi, uid }) {
               <input
                 type="text"
                 maxLength={30}
-                placeholder="プラットフォームなど"
+                placeholder=""
                 value={rank.customPlatform}
                 onChange={(e) => handleRankChange(index, 'customPlatform', e.target.value)}
                 className="border p-1 rounded-lg"
@@ -251,7 +251,7 @@ export default function EditPage({ meishi, uid }) {
               <input
                 type="text"
                 maxLength={30}
-                placeholder="段位/級位など"
+                placeholder=""
                 value={rank.customRank}
                 onChange={(e) => handleRankChange(index, 'customRank', e.target.value)}
                 className="border p-1 rounded-lg"
@@ -259,7 +259,7 @@ export default function EditPage({ meishi, uid }) {
             )}
         </div>
         ))}
-        {ranksList.length < 3 && (
+        {ranksList.length < 4 && (
           <button type="button" onClick={addRankField} className="border p-1 underline">
             ＋追加
           </button>

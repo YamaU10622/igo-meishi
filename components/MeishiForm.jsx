@@ -5,7 +5,7 @@ import { collection, setDoc, getDocs, serverTimestamp, query, where, doc } from 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const platforms = [
-  '幽玄の間', '野狐囲碁', '東洋囲碁', 'OGS', 'KGS', 'みんなの囲碁', 'その他(自由入力)'
+  '幽玄の間 ', '野狐囲碁 ', '東洋囲碁 ', 'OGS ', 'KGS ', '囲碁クエスト(9路) ', '囲碁クエスト(13路) ', '囲碁クエスト(19路) ', 'みんなの囲碁 ', 'その他(自由入力)'
 ];
 
 const ranks = [
@@ -42,7 +42,7 @@ export default function MeishiForm({ user }) {
   };
 
   const addRankField = () => {
-    if (ranksList.length >= 3) return;
+    if (ranksList.length >= 4) return;
     setRanksList([...ranksList, { platform: '', customPlatform: '', rank: '', customRank: '' }]);
   };
 
@@ -211,7 +211,7 @@ export default function MeishiForm({ user }) {
       </div>
 
       <div>
-        <label className="block font-bold">棋力（最大3つまで）</label>
+        <label className="block font-bold">棋力（4つまで）</label>
         ※選択肢にない場合は「その他(自由入力)」（30字以内）を選択して入力してください
         {ranksList.map((rank, index) => (
           <div key={index} className="mb-2 space-x-2">
@@ -255,7 +255,7 @@ export default function MeishiForm({ user }) {
             )}
           </div>
         ))}
-        {ranksList.length < 3 && (
+        {ranksList.length < 4 && (
           <button type="button" onClick={addRankField} className="border p-1 underline">
             ＋追加
           </button>
