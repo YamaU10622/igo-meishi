@@ -6,6 +6,7 @@ import { db } from '../lib/firebase';
 import { doc, query, where, getDoc, getDocs, collection } from 'firebase/firestore';
 import { motion } from "framer-motion";
 import Head from 'next/head';
+import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function Home() {
@@ -101,7 +102,7 @@ export default function Home() {
       <div className="relative min-h-screen flex flex-col">
       <div className="absolute inset-0 -z-10 min-h-screen bg-[url('/images/igo.webp')] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center px-4"></div>
       <div className="absolute inset-0 -z-10 bg-white/60"></div>
-
+{/* 
       <div className="top-0 right-0 m-4">
         {user ? (
           <div className="flex items-center gap-2">
@@ -115,7 +116,8 @@ export default function Home() {
             Googleでログイン
           </button>
         )}
-      </div>
+      </div> */}
+      <Header/>
 
       <div className="relative z-10 flex flex-col items-center">
         <motion.h1
@@ -129,8 +131,8 @@ export default function Home() {
         <p className="text-center max-w-xl mb-8 text-gray-600">
           囲碁好きのための「囲碁名刺」作成＆共有サイトです！
           <br /><br /> 棋力や推し棋士、棋風などを自由に記載して、あなたの囲碁スタイルを発信しましょう。
-          <br /><br /> 「作成する」ボタンから名刺の登録（Googleログイン＆ユーザー名必須）
-          <br /><br /> 「編集する」から名刺の修正、「ユーザー名で検索」から自分や他のユーザーの名刺の表示ができます。
+          <br /><br /> 「作成」ボタンから名刺の登録（Googleログイン＆ユーザー名必須）
+          <br /><br /> 「編集」から名刺の修正、「ユーザー名で検索」から自分や他のユーザーの名刺の表示ができます。
           <br /><br /> ※今後、ユーザーリストや棋力による検索機能も追加予定。
         </p>
 

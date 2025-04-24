@@ -6,12 +6,15 @@ import { db, auth } from "../../lib/firebase";
 import { query, where, getDocs, collection } from 'firebase/firestore';
 import Head from 'next/head';
 import { QRCodeCanvas } from 'qrcode.react';
+import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function MeishiPage({ meishi, normalizedName }) {
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
   const qrRef = useRef(null);
+
+  const isYourMeishi = meishi.uid === user?.uid;
 
   if (loading) return null;
 
@@ -49,7 +52,10 @@ export default function MeishiPage({ meishi, normalizedName }) {
         <title>{meishi.name}の 囲碁名刺</title>
       </Head>
       <div className="relative bg-[url('/images/igo.webp')] bg-cover bg-center bg-no-repeat min-h-screen flex flex-col">
-      <div className="absolute inset-0 z-0 bg-white/60 backdrop-blur-none z-0"></div>
+      
+      <div className="absolute inset-0 z-0 bg-white/60 backdrop-blur-none z-0"><Header
+        onLoginClick={() => router.push(`/login?redirect=/meishi/${meishi.name}`)}
+      /></div>
       <div className="absolute top-4 right-4 text-sm text-gray-700">
       <a href="https://igo-meishi.vercel.app/">トップページへ</a>
       </div>
@@ -128,10 +134,16 @@ export default function MeishiPage({ meishi, normalizedName }) {
       <p>作成日: {meishi.createdAt ? new Date(meishi.createdAt).toLocaleDateString() : '―'}</p>
       <p>最終更新日: {meishi.lastUpdated ? new Date(meishi.lastUpdated).toLocaleDateString() : '―'}</p>
     </div>
+    <br></br>
+
+  { isYourMeishi && 
+    (<button onClick={() => (router.push(`/edit/${encodeURIComponent(normalizedName)}`))} className="w-xs bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-400">
+      編集
+  </button>)}
 
     {/* QRコード */}
     <div className="mt-4 flex items-center justify-center space-x-6">
-  {/* 左側：QRコード＋説明＋保存 */}
+  {/* 左側：QRコード*/}
   <div className="flex flex-col items-center space-y-1" ref={qrRef}>
     <QRCodeCanvas
       value={window.location.href}
@@ -152,7 +164,7 @@ export default function MeishiPage({ meishi, normalizedName }) {
   {/* 右側：Twitterボタン */}
   <button
     onClick={handleTweet}
-    className="text-white bg-blue-500 hover:bg-blue-600 text-xs px-3 py-2 rounded transition">
+    className="text-white bg-blue-600 hover:bg-blue-400 text-xs px-3 py-2 rounded transition">
     X(Twitter)で共有
   </button>
   </div>

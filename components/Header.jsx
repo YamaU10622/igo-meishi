@@ -1,23 +1,35 @@
-import { signOut } from "firebase/auth";
+import { useRouter } from 'next/router';
+import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../lib/firebase";
 
-const Header = ({ user }) => {
-  const handleLogout = () => {
-    signOut(auth);
-  };
+export default function Header({onLoginClick}) {
+  const router = useRouter();
+  const [user] = useAuthState(auth);
+  
+  const handleLoginClick = () => {
+    if (!user) {
+      if (onLoginClick) {
+        onLoginClick(); 
+      } else {
+        router.push(`/login?redirect=/`);
+      }
+    }
+  }
 
   return (
-    <header className="p-2 border-b flex justify-between items-center">
-      {user ? (
-        <>
-          <span>{user.displayName} でログイン中</span>
-          <button onClick={handleLogout} className="ml-4 text-blue-500">ログアウト</button>
-        </>
-      ) : (
-        <span>未ログイン</span>
-      )}
-    </header>
+    <div className="top-0 right-0 m-4">
+        {user ? (
+          <div className="flex items-center gap-2">
+            <span>{user.displayName} でログイン中</span>
+            <button onClick={() => auth.signOut()} className="text-blue-600 hover:underline">
+              ログアウト
+            </button>
+          </div>
+        ) : (
+          <button onClick={handleLoginClick} className="text-black hover:text-gray-400">
+            Googleでログイン
+          </button>
+        )}
+      </div>
   );
 };
-
-export default Header;
